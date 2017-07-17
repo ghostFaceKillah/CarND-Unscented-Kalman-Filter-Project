@@ -55,6 +55,39 @@ UKF::UKF() {
 
 UKF::~UKF() {}
 
+void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
+  // state dimension
+  int n_x = 5;
+
+  // define spreading parameter
+  double lambda = 3 - n_x;
+
+  VectorXd x = x_;
+  MatrixXd P = P_;
+  
+  // create sigma point matrix
+  MatrixXd Xsig = MatrixXd(n_x, 2 * n_x + 1);
+
+  // calculate square root of P
+  MatrixXd A = P.llt().matrixL();
+
+  Xsig.col(0) = x;
+
+  for (int i = 0; i < n_x; ++i) {
+    Xsig.col(i + 1) = x + sqrt(lambda + n_x) * A.col(i);
+    Xsig.col(i + 1 + n_x) = x - sqrt(lambda + n_x) * A.col(i);
+  }
+
+  *Xsig_out = Xsig;
+}
+
+void UKF::AugmentSigmaPoints(MatrixXd* Xsig_out) {
+  int n_x = 5;
+  int n_aug = 7;
+
+
+}
+
 /**
  * @param {MeasurementPackage} meas_package The latest measurement data of
  * either radar or laser.
