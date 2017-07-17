@@ -66,6 +66,10 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
+
+  /**
+   * if
+   */
 }
 
 /**
@@ -80,6 +84,60 @@ void UKF::Prediction(double delta_t) {
   Complete this function! Estimate the object's location. Modify the state
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
+
+
+  // prepare augmented sigma points
+  
+  // state dimension
+  int n_x = 5;
+
+  // predict sigma points
+  for (int i = 0 ; i < 2 * n_aug + 1; ++i) {
+    double p_x = Xsig_aug(0, i);
+    double p_y = Xsig_aug(1, i);
+    double v = Xsig_aug(2, i);
+    double yaw = Xsig_aug(3, i);
+    double yawd = Xsig_aug(4, i);
+    // state augmentation
+    double nu_a = Xsig_aug(5, i);
+    double nu_yawwed = Xsig_aug(6, i);
+
+    // predicted state values
+    double px_p, py_p;
+
+    // avoid division by zero
+    if (fabs(yawd) > 1e-3) {
+      px_p = p_x + v / yawd * (sin(yaw + yawd * delta_t) - sin(yaw));
+      py_p = p_y + v / yawd * (cos(yaw + yawd * delta_t) - cos(yaw));
+    } else {
+      px_p = p_x + v * delta_t * cos(yaw);
+      py_p = p_y + v * delta_t * sin(yaw);
+    }
+
+    double v_p = v;
+    double yaw_p = yaw + yawd * delta_t;
+    double yawd_p = yawd;
+
+    // add noise
+    px_p += 0.5 * nu_a * delta_t * delta_t * cos(yaw);
+    py_p += 0.5 * nu_a * delta_t * delta_t * sin(yaw);
+    v_p += nu_a * delta_t;
+
+    yaw_p += 0.5 * nu_yawdd * delta_t * delta_t;
+    yawd_p += nu_yawdd * delta_t;
+
+    // write the prediction to the output matrix column;
+    Xsig_pred(0, i) = px_p;
+    Xsig_pred(1, i) = py_p;
+    Xsig_pred(2, i) = v_p;
+    Xsig_pred(3, i) = yaw_p;
+    Xsig_pred(4, i) = yawd_p;
+  }
+
+  // output it somehow
+  // *Xsig_out = xsig_pred;
+
+
 }
 
 /**
