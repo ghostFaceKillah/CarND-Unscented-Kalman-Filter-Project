@@ -50,42 +50,41 @@ UKF::UKF() {
   Complete the initialization. See ukf.h for other member properties.
 
   Hint: one or more values initialized above might be wildly off...
+
+  NOTE: Maybe pass everything by state here?
   */
 }
 
 UKF::~UKF() {}
 
 void UKF::GenerateSigmaPoints(MatrixXd* Xsig_out) {
-  // state dimension
-  int n_x = 5;
-
-  // define spreading parameter
-  double lambda = 3 - n_x;
-
-  VectorXd x = x_;
-  MatrixXd P = P_;
-  
-  // create sigma point matrix
-  MatrixXd Xsig = MatrixXd(n_x, 2 * n_x + 1);
-
-  // calculate square root of P
-  MatrixXd A = P.llt().matrixL();
-
-  Xsig.col(0) = x;
-
-  for (int i = 0; i < n_x; ++i) {
-    Xsig.col(i + 1) = x + sqrt(lambda + n_x) * A.col(i);
-    Xsig.col(i + 1 + n_x) = x - sqrt(lambda + n_x) * A.col(i);
-  }
-
-  *Xsig_out = Xsig;
-}
-
-void UKF::AugmentSigmaPoints(MatrixXd* Xsig_out) {
   int n_x = 5;
   int n_aug = 7;
 
+  VectorXd x_aug = VectorXd(7);
+  MatrixXd P_aug = MatrixXd(7, 7);
+  MatrixXd Xsig_aug = MatrixXd(n_aug, 2 * n_aug + 1);
 
+  x_aug.head(5) = x_;
+  x_aug(5) = 0;
+  x_aug(6) = 0;
+
+
+  P_aug.fill(0.0);
+  P_aug.topLeftCorner(5, 5) = P;
+  P_aug(5, 5) = std_a_ * std_a;
+  P_aug(6, 6) = std_yawdd * std_yawdd;
+
+  MatrixXd L = P_aug.llt().matrixL();
+
+  Xsig_aug.col(0) = x_aug;
+  for (int i = 0; i < n_aug; ++i)
+  {
+    X_sig_aug.col(i + 1) = x_aug + sqrt(lambda + n_aug) * L.col(i);
+    X_sig_aug.col(i + 1) = x_aug - sqrt(lambda + n_aug) * L.col(i);
+  }
+
+  *Xsig_out = Xsig_aug;
 }
 
 /**
@@ -118,12 +117,14 @@ void UKF::Prediction(double delta_t) {
   vector, x_. Predict sigma points, the state, and the state covariance matrix.
   */
 
-
-  // prepare augmented sigma points
-  
   // state dimension
   int n_x = 5;
+  int n_aug = 7;
 
+  // prepare augmented sigma points
+  MatrixXd Xsig_aug = MatrixXd(n_aug, 2 * n_aug + 1);
+  GenerateSigmaPoints(&Xsig_out);
+  
   // predict sigma points
   for (int i = 0 ; i < 2 * n_aug + 1; ++i) {
     double p_x = Xsig_aug(0, i);
@@ -167,7 +168,54 @@ void UKF::Prediction(double delta_t) {
     Xsig_pred(4, i) = yawd_p;
   }
 
-  // output it somehow
+
+  // TODO: Mike - Break it up as another function
+  // calculate predicted mean and covariance
+
+  // create vector for weights
+  VectorXd weights = VectorXd(2 * n_aug + 1);
+
+  // create vector for predicted new state
+  VectorXd x = Vector(n_x);
+
+  // create covariance matrix for prediction
+  MatrixXd P = MatrixXd(n_x, n_x);
+
+  // set weights
+  double weight_0 = lambda / (lambda + n_aug);
+  weights(0) = lambda / (lambda + n_aug);
+  for (int i = 1; i < 2 * n_aug + 1; ++i) {
+    weights(i) = 0.5 / (n_aug + lambda);
+  }
+
+  // calculate predicted state mean
+  x.fill(0.0);
+  for (int i = 0; i < 2 * n_aug + 1; ++i) {
+    x += weights(i) * Xsig_pred.col(i);
+  }
+
+  // calculate predicted state covariance
+  P.fill(0.0);
+
+  for (int i = 0; i < 2 * n_aug + 1; ++i) {
+    // innovation
+    VectorXd x_diff = Xsig_pred.col(i) - x;
+
+    // angle normalization
+    while (x_diff(3) > M_PI) {
+      x_diff(3) -= 2 * M_PI
+    };
+
+    while (x_diff(3) < -M_PI) {
+      x_diff(3) += 2 * M_PI
+    };
+
+    P += weights(i) * x_diff * x_diff.transpose();
+  }
+
+
+  // TODO: output it somehow??
+  // write the predictions to somewhere!!
   // *Xsig_out = xsig_pred;
 
 
