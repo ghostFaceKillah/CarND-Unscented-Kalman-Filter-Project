@@ -1,0 +1,6 @@
+Just radar has big amount of bias, weird, weird. A lot of momentum as well. Weird.
+
+Just laser work ideal.
+So there has to be some problem with the radar measurement.
+
+http://github.com/ILYAmLV/Unscented-Kalman-Filter/blob/master/src/ukf.cpp
