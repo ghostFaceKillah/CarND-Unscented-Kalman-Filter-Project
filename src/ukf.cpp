@@ -1,26 +1,13 @@
-#include "ukf.h"
-#include "Eigen/Dense"
 #include <iostream>
+#include "Eigen/Dense"
+
+#include "ukf.h"
+#include "tools.h"
 
 using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using std::vector;
-
-// Utils
-double normalize(double x) {
-  while (x > M_PI) {
-    x -= 2.0 * M_PI;
-    cout << "less!" << endl;
-    cout << x << endl;
-  }
-  while (x < -M_PI) {
-    x += 2.0 * M_PI;
-    cout << "moar!" << endl;
-    cout <<  x << endl;
-  }
-  return x;
-};
 
 
 /**
@@ -56,11 +43,9 @@ UKF::UKF() {
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  // TODO(Mike): Tune
   std_a_ = 0.9;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  // TODO(mike): Tune
   // std_yawdd_ = 1.7; 1.3 was cool
   std_yawdd_ = 0.4;
 
@@ -108,11 +93,6 @@ UKF::~UKF() {}
 void UKF::InitializeWithFirstMeasurement(MeasurementPackage meas_package) {
   x_.fill(0.0);
 
-  // State vector
-  x_ << 1, 1, 1, 1, 0.1;
-
-
-
   float v_var;
   if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
     x_(0) = meas_package.raw_measurements_(0);
@@ -129,18 +109,12 @@ void UKF::InitializeWithFirstMeasurement(MeasurementPackage meas_package) {
 
     v_var = 0.5;
   }
-
- //  P_ << 0.5,  0,    0,      0,    0,
- //        0,    0.5,  0,      0,    0, 
- //        0,    0,    v_var,  0,    0, 
- //        0,    0,    0,      0.5,  0, 
- //        0,    0,    0,      0,    0.5;
  
   P_ << 0.15,  0,    0,      0,    0,
-        0,    0.15,  0,      0,    0, 
-        0,    0,    1,  0,    0, 
-        0,    0,    0,      1,  0, 
-        0,    0,    0,      0,   1;
+        0,     0.15, 0,      0,    0, 
+        0,     0,    1,      0,    0, 
+        0,     0,    0,      1,    0, 
+        0,     0,    0,      0,    1;
 
   time_us_ = meas_package.timestamp_;
   is_initialized_ = true;
@@ -206,7 +180,7 @@ MatrixXd UKF::GenerateSigmaPoints() {
 
 
   for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
-      Xsig_aug(3, i) = normalize(Xsig_aug(3, i));
+      Xsig_aug(3, i) = Xsig_aug(3, i);
   };
 
   return Xsig_aug;
@@ -241,7 +215,7 @@ void UKF::Prediction(double delta_t) {
     // avoid division by zero
     if (fabs(yawd) > 1e-3) {
       px_p = p_x + v / yawd * (sin(yaw + yawd * delta_t) - sin(yaw));
-      py_p = p_y + v / yawd * (cos(yaw + yawd * delta_t) - cos(yaw));
+      py_p = p_y + v / yawd * (cos(yaw) - cos(yaw + yawd * delta_t));
     } else {
       px_p = p_x + v * delta_t * cos(yaw);
       py_p = p_y + v * delta_t * sin(yaw);
@@ -263,7 +237,7 @@ void UKF::Prediction(double delta_t) {
     Xsig_pred_(0, i) = px_p;
     Xsig_pred_(1, i) = py_p;
     Xsig_pred_(2, i) = v_p;
-    Xsig_pred_(3, i) = normalize(yaw_p);
+    Xsig_pred_(3, i) = yaw_p;
     Xsig_pred_(4, i) = yawd_p;
   }
 
@@ -273,13 +247,12 @@ void UKF::Prediction(double delta_t) {
   for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
     x_ += weights_(i) * Xsig_pred_.col(i);
   }
-  x_(3) = normalize(x_(3));
 
   // calculate predicted state covariance
   P_.fill(0.0);
 
   for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
-    // innovation
+    // state difference
     VectorXd x_diff = Xsig_pred_.col(i) - x_;
 
     // angle normalization
@@ -297,8 +270,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   int n_z = 2;
 
-  VectorXd z(n_z);
-  z = meas_package.raw_measurements_;
+  VectorXd z = meas_package.raw_measurements_;
 
   // predicted measurements sigma points
   MatrixXd Zsig_pred(n_z, 2 * n_aug_ + 1);
@@ -322,7 +294,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   for (int i = 0; i < 2 * n_aug_ + 1; ++i) {
     VectorXd z_diff = Zsig_pred.col(i) - Z_pred;
 
-    S += weights_(i) * (z_diff * z_diff.transpose());
+    S += weights_(i) * z_diff * z_diff.transpose();
   }
 
   S += R_lidar_;
@@ -401,7 +373,6 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   // unpack incoming radar measurmenet
   VectorXd z = VectorXd(n_z);
   z = meas_package.raw_measurements_;
-  z(1) = normalize(z(1));
 
   // calculate cross correlation matrix
   MatrixXd Tc = MatrixXd(n_x_, n_z);

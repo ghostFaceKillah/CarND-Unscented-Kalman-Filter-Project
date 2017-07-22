@@ -7,6 +7,13 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using namespace std;
 
+/**
+ * Restrict value of an angle to range [-pi, pi].
+ * If it is outside of this range, adjust in steps of lengh 2 pi.
+ *
+ */
+double normalize(double angle);
+
 class Tools {
 public:
   /**

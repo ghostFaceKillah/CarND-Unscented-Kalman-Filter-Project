@@ -26,3 +26,18 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
 
     return rmse;
 }
+
+double normalize(double x) {
+    while (x > M_PI) {
+        x -= 2.0 * M_PI;
+        cout << "less!" << endl;
+        cout << x << endl;
+    }
+    while (x < -M_PI) {
+        x += 2.0 * M_PI;
+        cout << "moar!" << endl;
+        cout <<  x << endl;
+    }
+    return x;
+};
+

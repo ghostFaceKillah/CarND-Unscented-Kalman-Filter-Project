@@ -115,10 +115,16 @@ public:
   void UpdateRadar(MeasurementPackage meas_package);
 
 
-  // TODO(mike): Comment me
+  /**
+   * A convenience wrapper for finalization of initialization with the first 
+   * measurement package.
+   */
   void InitializeWithFirstMeasurement(MeasurementPackage meas_package);
 
-  // TODO(mike): Comment me
+  /**
+   * Generates sigma points for the augmented state, appropriate in the light
+   * of all information in the algorithm so far.
+   */
   MatrixXd GenerateSigmaPoints();
 };
 
