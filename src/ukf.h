@@ -73,6 +73,12 @@ public:
   ///* Lidar noise matrix
   MatrixXd R_lidar_;
 
+  ///* radar NIS
+  double NIS_radar_;
+
+  ///* laser NIS
+  double NIS_laser_;
+
   /**
    * Constructor
    */
